@@ -3,7 +3,7 @@ name: CI
 # Controls when the action will run.
 on:
   push:
-    branches: [master, fontAwesome]
+    branches: [master, prod]
 
 # Workflow to build and release windows and macos versions of the client.
 jobs:
@@ -29,17 +29,17 @@ jobs:
           name: dist-master
           path: dist
 
-      - name: Build fontAwesome
-        if: github.ref == 'refs/heads/fontAwesome'
+      - name: Build prod
+        if: github.ref == 'refs/heads/prod'
         run: |
           yarn install
           yarn clean
           yarn build:lib
-      - name: Upload fontAwesome build artifact
-        if: github.ref == 'refs/heads/fontAwesome'
+      - name: Upload prod build artifact
+        if: github.ref == 'refs/heads/prod'
         uses: actions/upload-artifact@v2
         with:
-          name: dist-fontAwesome
+          name: dist-prod
           path: dist
       - uses: gear-group/action-slack@v3
         with:
@@ -70,11 +70,11 @@ jobs:
           name: dist-master
           path: dist
 
-      - name: Download fontAwesome build artifact
-        if: github.ref == 'refs/heads/fontAwesome'
+      - name: Download prod build artifact
+        if: github.ref == 'refs/heads/prod'
         uses: actions/download-artifact@v2
         with:
-          name: dist-fontAwesome
+          name: dist-prod
           path: dist
 
       - name: Build mac
@@ -115,11 +115,11 @@ jobs:
           name: dist-master
           path: dist
 
-      - name: Download fontAwesome build artifact
-        if: github.ref == 'refs/heads/fontAwesome'
+      - name: Download prod build artifact
+        if: github.ref == 'refs/heads/prod'
         uses: actions/download-artifact@v2
         with:
-          name: dist-fontAwesome
+          name: dist-prod
           path: dist
 
       - name: Build windows
