@@ -1,0 +1,145 @@
+name: CI
+
+# Controls when the action will run.
+on:
+  push:
+    branches: [master, fontAwesome]
+
+# Workflow to build and release windows and macos versions of the client.
+jobs:
+  # build and release job:
+  build:
+    runs-on: [self-hosted, macOS]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.REPOS_TOKEN }}
+
+      - name: Build master
+        if: github.ref == 'refs/heads/master'
+        run: |
+          yarn install
+          yarn clean
+          yarn build:lib
+      - name: Upload master build artifact
+        if: github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist-master
+          path: dist
+
+      - name: Build fontAwesome
+        if: github.ref == 'refs/heads/fontAwesome'
+        run: |
+          yarn install
+          yarn clean
+          yarn build:lib
+      - name: Upload fontAwesome build artifact
+        if: github.ref == 'refs/heads/fontAwesome'
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist-fontAwesome
+          path: dist
+      - uses: gear-group/action-slack@v3
+        with:
+          username: 'Github'
+          icon_emoji: ' '
+          text: 'Completed'
+          author_name: ${{ github.repository }}
+          status: ${{ job.status }}
+          fields: author,ref,message
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: always() # Pick up events even if the job fails or is canceled.
+
+  release-mac:
+    needs: build
+    runs-on: [self-hosted, macOS]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.REPOS_TOKEN }}
+
+      - name: Download master build artifact
+        if: github.ref == 'refs/heads/master'
+        uses: actions/download-artifact@v2
+        with:
+          name: dist-master
+          path: dist
+
+      - name: Download fontAwesome build artifact
+        if: github.ref == 'refs/heads/fontAwesome'
+        uses: actions/download-artifact@v2
+        with:
+          name: dist-fontAwesome
+          path: dist
+
+      - name: Build mac
+        run: |
+          yarn dist
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: ${{ secrets.ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES }}
+          NODE_OPTIONS: ${{ secrets.NODE_OPTIONS }}
+
+      - uses: gear-group/action-slack@v3
+        with:
+          username: 'Github'
+          icon_emoji: ' '
+          text: 'Completed'
+          author_name: ${{ github.repository }}
+          status: ${{ job.status }}
+          fields: author,ref,message
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: always() # Pick up events even if the job fails or is canceled.
+
+  release-win:
+    needs: build
+    runs-on: [self-hosted, Windows]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.REPOS_TOKEN }}
+
+      - name: Download master build artifact
+        if: github.ref == 'refs/heads/master'
+        uses: actions/download-artifact@v2
+        with:
+          name: dist-master
+          path: dist
+
+      - name: Download fontAwesome build artifact
+        if: github.ref == 'refs/heads/fontAwesome'
+        uses: actions/download-artifact@v2
+        with:
+          name: dist-fontAwesome
+          path: dist
+
+      - name: Build windows
+        run: |
+          yarn dist32
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: ${{ secrets.ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES }}
+          NODE_OPTIONS: ${{ secrets.NODE_OPTIONS }}
+
+      - uses: gear-group/action-slack@v3
+        with:
+          username: 'Github'
+          icon_emoji: ' '
+          text: 'Completed'
+          author_name: ${{ github.repository }}
+          status: ${{ job.status }}
+          fields: author,ref,message
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: always() # Pick up events even if the job fails or is canceled.
